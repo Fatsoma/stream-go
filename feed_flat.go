@@ -3,6 +3,7 @@ package getstream
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -14,15 +15,39 @@ type postFlatFeedOutputActivities struct {
 
 // GetFlatFeedInput is used to Get a list of Activities from a FlatFeed
 type GetFlatFeedInput struct {
-	Limit  int `json:"limit,omitempty"`
-	Offset int `json:"offset,omitempty"`
+	Limit  int
+	Offset int
 
-	IDGTE string `json:"id_gte,omitempty"`
-	IDGT  string `json:"id_gt,omitempty"`
-	IDLTE string `json:"id_lte,omitempty"`
-	IDLT  string `json:"id_lt,omitempty"`
+	IDGTE string
+	IDGT  string
+	IDLTE string
+	IDLT  string
 
-	Ranking string `json:"ranking,omitempty"`
+	Ranking string
+}
+
+func (i *GetFlatFeedInput) Params() (params map[string]string) {
+	params = make(map[string]string)
+
+	if i.Limit != 0 {
+		params["limit"] = fmt.Sprintf("%d", i.Limit)
+	}
+	if i.Offset != 0 {
+		params["offset"] = fmt.Sprintf("%d", i.Offset)
+	}
+	if i.IDGTE != "" {
+		params["id_gte"] = i.IDGTE
+	}
+	if i.IDGT != "" {
+		params["id_gt"] = i.IDGT
+	}
+	if i.IDLTE != "" {
+		params["id_lte"] = i.IDLTE
+	}
+	if i.IDLT != "" {
+		params["id_lt"] = i.IDLT
+	}
+	return params
 }
 
 // GetFlatFeedOutput is the response from a FlatFeed Activities Get Request
@@ -157,20 +182,12 @@ func (f *FlatFeed) AddActivities(activities []*Activity) ([]*Activity, error) {
 
 // Activities returns a list of Activities for a FlatFeedGroup
 func (f *FlatFeed) Activities(input *GetFlatFeedInput) (*GetFlatFeedOutput, error) {
-
-	var payload []byte
 	var err error
-
-	if input != nil {
-		payload, err = json.Marshal(input)
-		if err != nil {
-			return nil, err
-		}
-	}
 
 	endpoint := "feed/" + f.FeedSlug + "/" + f.UserID + "/"
 
-	result, err := f.Client.get(f, endpoint, payload, nil)
+	result, err := f.Client.get(f, endpoint, nil, input.Params())
+
 	if err != nil {
 		return nil, err
 	}
@@ -197,14 +214,6 @@ func (f *FlatFeed) RemoveActivityByForeignID(input *Activity) error {
 
 	if input.ForeignID == "" {
 		return errors.New("no ForeignID")
-	}
-
-	r, err := regexp.Compile("^[a-z0-9]{8}-[a-z0-9]{4}-[1-5][a-z0-9]{3}-[a-z0-9]{4}-[a-z0-9]{12}$")
-	if err != nil {
-		return err
-	}
-	if !r.MatchString(input.ForeignID) {
-		return errors.New("invalid ForeignID")
 	}
 
 	endpoint := "feed/" + f.FeedSlug + "/" + f.UserID + "/" + input.ForeignID + "/"

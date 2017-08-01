@@ -1,12 +1,14 @@
 # stream-go
 
-Master Branch: [![Build Status](https://travis-ci.org/GetStream/stream-go.svg?branch=master)](https://travis-ci.org/GetStream/stream-go)
-Dev Branch: [![Build Status](https://travis-ci.org/GetStream/stream-go.svg?branch=dev)](https://travis-ci.org/GetStream/stream-go)
+[stream-go](https://github.com/GetStream/stream-go) is a (beta) Go client for [Stream](https://getstream.io/).
 
-[![godoc](https://godoc.org/github.com/GetStream/stream-go?status.svg)](https://godoc.org/github.com/GetStream/stream-go)
-[![codecov](https://codecov.io/gh/GetStream/stream-go/branch/master/graph/badge.svg)](https://codecov.io/gh/GetStream/stream-go)
+You can sign up for a Stream account at https://getstream.io/get_started.
 
-Beta client library for [GetStream.io](//getstream.io).
+-Master Branch: [![Build Status](https://travis-ci.org/GetStream/stream-go.svg?branch=master)](https://travis-ci.org/GetStream/stream-go)
+
+-Dev Branch: [![Build Status](https://travis-ci.org/GetStream/stream-go.svg?branch=dev)](https://travis-ci.org/GetStream/stream-go)
+
+[![godoc](https://godoc.org/github.com/GetStream/stream-go?status.svg)](https://godoc.org/github.com/GetStream/stream-go) [![codecov](https://codecov.io/gh/GetStream/stream-go/branch/master/graph/badge.svg)](https://codecov.io/gh/GetStream/stream-go)
 
 This library could not exist without the efforts of several open-source community members,
 including the awesome folks at [MrHenry](//github.com/mrhenry) and
@@ -18,18 +20,9 @@ with them to get a final license in place. Stream will be modifying the codebase
 together with MrHenry over time, so we especially want to point out how great they
 have been working with us to release this library.
 
-### Beta
+### Full documentation
 
-We are releasing this as our v0.9.0 beta since there may be bugs, and inevitable cleanup
-will happen along the way. Please do not hesitate to [contact us](mailto:support@getstream.io)
-if you see something strange happening. We'd be happy to consider any and all pull
-requests from the community as well!
-
-### Roadmap
-
-- Improved test coverage (currently around 84%)
-- Refactoring to make some methods and attributes private which don't need exposure
-- Ensuring Go best practices
+Documentation for this Go client are available at the [Stream website](https://getstream.io/docs/?language=go).
 
 ### Example Usage
 
@@ -46,30 +39,29 @@ client, err := getstream.New(&getstream.Config{
     APISecret:   os.Getenv("STREAM_API_SECRET"),
     AppID:       os.Getenv("STREAM_APP_ID"),
     Location:    os.Getenv("STREAM_REGION"),
-    TimeoutInt:  os.Getenv("STREAM_TIMEOUT"),
 })
 if err != nil {
     return err
 }
 
 // but you can define the variables in code as well, of course
-APIKey string = "your-api-key"
-APISecret string = "your-api-secret"
+APIKey := "your-api-key"
+APISecret := "your-api-secret"
 
 // your application ID, found on your GetStream.io dashboard
-AppID string = "16013"
+AppID := "16013"
 
 // Location is optional; leaving it blank will default the
 // hostname to "api.getstream.io"
 // but we do have geographic-specific choices:
 // "us-east", "us-west" and "eu-west"
-Location string = "us-east"
+Location := "us-east"
 
 // TimeoutInt is an optional integer parameter to define
 // the number of seconds before your connection will hang-up
 // during a request; you can set this to any non-negative
 // and non-zero whole number, and will default to 3
-TimeoutInt: 3
+TimeoutInt := 3
 
 client, err := getstream.New(&getstream.Config{
     APIKey:      APIKey,
