@@ -383,7 +383,7 @@ func TestAggregatedActivityMetaData(t *testing.T) {
 		Verb:      "post",
 		TimeStamp: &now,
 		Data:      &raw,
-		MetaData: map[string]string{
+		MetaData: map[string]interface{}{
 			"meta": "data",
 		},
 	}

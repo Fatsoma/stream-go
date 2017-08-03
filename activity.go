@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+const layout = "2006-01-02T15:04:05.999999"
+
 // Activity is a getstream Activity
 // Use it to post activities to Feeds
 // It is also the response from Fetch and List Requests
@@ -21,7 +23,7 @@ type Activity struct {
 
 	ForeignID string
 	Data      *json.RawMessage
-	MetaData  map[string]string
+	MetaData  map[string]interface{}
 
 	To []Feed
 }
@@ -57,9 +59,9 @@ func (a Activity) MarshalJSON() ([]byte, error) {
 	}
 
 	if a.TimeStamp == nil {
-		payload["time"] = time.Now().Format("2006-01-02T15:04:05.999999")
+		payload["time"] = time.Now().Format(layout)
 	} else {
-		payload["time"] = a.TimeStamp.Format("2006-01-02T15:04:05.999999")
+		payload["time"] = a.TimeStamp.Format(layout)
 	}
 
 	var tos []string
@@ -82,9 +84,8 @@ func (a Activity) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON is the custom unmarshal function for Activities
 // It will be used by json.Unmarshal()
 func (a *Activity) UnmarshalJSON(b []byte) (err error) {
-
-	rawPayload := make(map[string]*json.RawMessage)
-	metadata := make(map[string]string)
+	rawPayload := make(map[string]*payload)
+	metadata := make(map[string]interface{})
 
 	err = json.Unmarshal(b, &rawPayload)
 	if err != nil {
@@ -98,114 +99,137 @@ func (a *Activity) UnmarshalJSON(b []byte) (err error) {
 			continue
 		}
 
-		if lowerKey == "id" {
-			var strValue string
-			json.Unmarshal(*value, &strValue)
-			a.ID = strValue
-		} else if lowerKey == "actor" {
-			var strValue string
-			json.Unmarshal(*value, &strValue)
-			a.Actor = strValue
-		} else if lowerKey == "verb" {
-			var strValue string
-			json.Unmarshal(*value, &strValue)
-			a.Verb = strValue
-		} else if lowerKey == "foreign_id" {
-			var strValue string
-			json.Unmarshal(*value, &strValue)
-			a.ForeignID = strValue
-		} else if lowerKey == "object" {
-			var strValue string
-			json.Unmarshal(*value, &strValue)
-			a.Object = strValue
-		} else if lowerKey == "origin" {
-			var strValue string
-			json.Unmarshal(*value, &strValue)
-			a.Origin = FeedID(strValue)
-		} else if lowerKey == "target" {
-			var strValue string
-			json.Unmarshal(*value, &strValue)
-			a.Target = strValue
-		} else if lowerKey == "time" {
-			var strValue string
-			err := json.Unmarshal(*value, &strValue)
-			if err != nil {
-				continue
-			}
-			timeStamp, err := time.Parse("2006-01-02T15:04:05.999999", strValue)
-			if err != nil {
-				continue
-			}
-			a.TimeStamp = &timeStamp
-		} else if lowerKey == "data" {
-			a.Data = value
-		} else if lowerKey == "to" {
-
-			var to1D []string
-			var to2D [][]string
-
-			err := json.Unmarshal(*value, &to1D)
-			if err != nil {
-				err = nil
-				err = json.Unmarshal(*value, &to2D)
-				if err != nil {
-					continue
-				}
-
-				for _, to := range to2D {
-					if len(to) == 2 {
-						feedStr := to[0] + " " + to[1]
-						to1D = append(to1D, feedStr)
-					} else if len(to) == 1 {
-						to1D = append(to1D, to[0])
-					}
-				}
-			}
-
-			for _, to := range to1D {
-				feed := GeneralFeed{}
-
-				match, err := regexp.MatchString(`^\w+:\w+ .*?$`, to)
-				if err != nil {
-					continue
-				}
-
-				if match {
-					firstSplit := strings.Split(to, ":")
-					secondSplit := strings.Split(firstSplit[1], " ")
-
-					feed.FeedSlug = firstSplit[0]
-					feed.UserID = secondSplit[0]
-					feed.token = secondSplit[1]
-					a.To = append(a.To, &feed)
-					continue
-				}
-
-				match = false
-				err = nil
-
-				match, err = regexp.MatchString(`^\w+:\w+$`, to)
-				if err != nil {
-					continue
-				}
-
-				if match {
-					firstSplit := strings.Split(to, ":")
-
-					feed.FeedSlug = firstSplit[0]
-					feed.UserID = firstSplit[1]
-					a.To = append(a.To, &feed)
-					continue
-				}
-			}
-		} else {
-			var strValue string
-			json.Unmarshal(*value, &strValue)
-			metadata[key] = strValue
+		switch lowerKey {
+		case "id":
+			a.ID = value.String()
+		case "actor":
+			a.Actor = value.String()
+		case "verb":
+			a.Verb = value.String()
+		case "foreign_id":
+			a.ForeignID = value.String()
+		case "object":
+			a.Object = value.String()
+		case "origin":
+			a.Origin = FeedID(value.String())
+		case "target":
+			a.Target = value.String()
+		case "time":
+			a.TimeStamp = value.TimeStamp()
+		case "data":
+			a.Data = &value.RawMessage
+		case "to":
+			a.To = value.To()
+		default:
+			var v interface{}
+			json.Unmarshal(value.RawMessage, &v)
+			metadata[key] = v
 		}
 	}
 
 	a.MetaData = metadata
 	return nil
 
+}
+
+type payload struct {
+	json.RawMessage
+}
+
+func (p *payload) String() string {
+	var strValue string
+	json.Unmarshal(p.RawMessage, &strValue)
+	return strValue
+}
+
+func (p *payload) TimeStamp() *time.Time {
+	var strValue string
+	err := json.Unmarshal(p.RawMessage, &strValue)
+	if err != nil {
+		return nil
+	}
+
+	timeStamp, err := time.Parse(layout, strValue)
+	if err != nil {
+		return nil
+	}
+
+	return &timeStamp
+}
+
+func (p *payload) To() []Feed {
+	var feed []Feed
+
+	for _, to := range p.to1D() {
+		m1 := matchFeed(to)
+		if m1 != nil {
+			feed = append(feed, m1)
+		}
+
+		m2 := matchFeedWithToken(to)
+		if m2 != nil {
+			feed = append(feed, m2)
+		}
+	}
+
+	return feed
+}
+
+func (p *payload) to1D() []string {
+	var to1D []string
+	var to2D [][]string
+
+	err := json.Unmarshal(p.RawMessage, &to1D)
+	if err != nil {
+		err = json.Unmarshal(p.RawMessage, &to2D)
+		if err == nil {
+			for _, to := range to2D {
+				if len(to) == 2 {
+					feedStr := to[0] + " " + to[1]
+					to1D = append(to1D, feedStr)
+				} else if len(to) == 1 {
+					to1D = append(to1D, to[0])
+				}
+			}
+		}
+	}
+
+	return to1D
+}
+
+func matchFeedWithToken(to string) *GeneralFeed {
+	match, err := regexp.MatchString(`^\w+:\w+ .*?$`, to)
+	if err != nil {
+		return nil
+	}
+
+	if match {
+		firstSplit := strings.Split(to, ":")
+		secondSplit := strings.Split(firstSplit[1], " ")
+
+		return &GeneralFeed{
+			FeedSlug: firstSplit[0],
+			UserID:   secondSplit[0],
+			token:    secondSplit[1],
+		}
+	}
+
+	return nil
+}
+
+func matchFeed(to string) *GeneralFeed {
+	match, err := regexp.MatchString(`^\w+:\w+$`, to)
+	if err != nil {
+		return nil
+	}
+
+	if match {
+		firstSplit := strings.Split(to, ":")
+
+		return &GeneralFeed{
+			FeedSlug: firstSplit[0],
+			UserID:   firstSplit[1],
+		}
+	}
+	return nil
 }
